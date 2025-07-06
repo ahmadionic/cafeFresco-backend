@@ -22,7 +22,7 @@ const supplier = require('./routes/supplier');
 require('dotenv').config();
 const connectDB = require('./config/db');
 const PORT = process.env.PORT
-const EventEmitter = require('events');
+const EventEmitter = require('events'); 
 const cors = require('cors');
 
 

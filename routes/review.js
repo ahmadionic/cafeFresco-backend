@@ -10,7 +10,7 @@ router.post('/add/:productId', isLogged, async (req, res) => {
     try {
         const { rating, review } = req.body;
         const productId = req.params.productId;
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         // Check if user has already reviewed this product
         const existingReview = await reviewModal.findOne({ user: userId, product: productId });
@@ -47,12 +47,16 @@ router.post('/add/:productId', isLogged, async (req, res) => {
 
 // Get all reviews for a product
 router.get('/all/:productId', async (req, res) => {
+    // console.log({ 'id': req.params.productId })
     try {
-        const reviews = await reviewModal.find({ product: req.params.productId }).populate('user', 'name'); // Populate user name
+        const reviews = await reviewModal.find({ product: req.params.productId })
+            .populate('user', 'name email')
+            .select('user review rating createdAt');
+        // console.log(reviews)
         res.json(reviews);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
-module.exports = router;
+module.exports = router;  

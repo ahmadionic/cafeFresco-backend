@@ -7,6 +7,7 @@ const moment = require('moment');
 const productModel = require('../models/product')
 const userModel = require('../models/user')
 const notifyModel = require('../models/notification')
+const sendOrderMail = require('../config/sendMail')
 
 
 
@@ -209,6 +210,26 @@ router.get('/history/:userId', async (req, res) => {
 
 
 
+router.get('/user/history', isLogged, async (req, res) => {
+    const userId = req.user.userId;
+    console.log(req.user.userId)
+    console.log("User History working");
+    try {
+        const orders = await orderModel.find({ userId })
+            .populate('products userId').sort({ createdAt: -1 })
+            .exec();
+
+        if (!orders) {
+            return res.status(404).json({ message: 'No orders found' });
+        }
+
+        res.status(200).json({ orders });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch order history', error: error.message });
+    }
+});
+
+
 router.get("/stats", async (req, res) => {
     try {
         const { all, year, month } = req.query;
@@ -300,6 +321,20 @@ router.post('/set-transaction/:orderId', isLogged, async (req, res) => {
     }
 });
 
+
+router.post('/send-order-email', isLogged, async (req, res) => {
+    const { orderId, amount, status } = req.body;
+
+    try {
+        const user = await userModel.findById(req.user.userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        await sendOrderMail(user.email, orderId, amount, status);
+        res.json({ message: 'Email sent successfully' });
+    } catch (err) {
+        res.status(500).json({ message: 'Email failed', error: err.message });
+    }
+});
 
 
 module.exports = router;

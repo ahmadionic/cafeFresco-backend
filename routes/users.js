@@ -365,6 +365,21 @@ router.post('/contact', async (req, res) => {
     }
 });
 
+router.get('/user-info', isLogged, async (req, res) => {
+    try {
+        const user = await userModal.findById(req.user.userId).select("name email address phone");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({ user });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+});
+
 
 
 router.use('/images/user', express.static('public/images/user'));

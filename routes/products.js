@@ -260,7 +260,10 @@ router.get("/fetch", async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const product = await Product.findById(id).populate('category', 'title');
+        const product = await Product.findById(id)
+            .populate('category', 'title')
+            .populate('inventory', 'quantityInStock');
+
 
         if (!product) {
             return res.status(404).json({ message: "Product not found" });
