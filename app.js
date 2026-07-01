@@ -1,5 +1,6 @@
 const cookieParser = require('cookie-parser');
 const express = require('express');
+const mongoose = require('mongoose');
 const app = express();
 const path = require('path');
 const userRoutes = require('./routes/users');
@@ -19,9 +20,11 @@ const department = require('./routes/department')
 const distributer = require('./routes/distributer')
 const supplier = require('./routes/supplier');
 
+
 require('dotenv').config();
 const connectDB = require('./config/db');
-const PORT = process.env.PORT
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 const EventEmitter = require('events'); 
 const cors = require('cors');
 
@@ -81,13 +84,42 @@ app.use('/supplier', supplier);
 app.use('/distributer', distributer);
 
 
-connectDB();
-
 app.get('/', (req, res) => {
     res.send('Server is running');
 });
 
-// Start the server on port 8080 (adjust the port as needed)
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+app.get('/health', (req, res) => {
+    const dbConnected = mongoose.connection.readyState === 1;
+    res.status(dbConnected ? 200 : 503).json({
+        status: dbConnected ? 'ok' : 'database-unavailable',
+        database: dbConnected ? 'connected' : 'disconnected'
+    });
 });
+
+const startServer = async () => {
+    try {
+        await connectDB();
+        const listenOnPort = (port) => {
+            const server = app.listen(port, HOST, () => {
+                console.log(`Server running on http://${HOST}:${port}`);
+            });
+
+            server.on('error', (error) => {
+                if (error.code === 'EADDRINUSE') {
+                    console.warn(`Port ${port} is busy, trying ${port + 1}...`);
+                    server.close(() => listenOnPort(port + 1));
+                } else {
+                    console.error('Failed to start server:', error.message);
+                    process.exit(1);
+                }
+            });
+        };
+
+        listenOnPort(PORT);
+    } catch (error) {
+        console.error('Failed to start server:', error.message);
+        process.exit(1);
+    }
+};
+
+startServer();
